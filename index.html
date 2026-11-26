@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="description" content="The Kuza G2G Tribe - From Vision To Absolute Victory. A good to great movement committed to connect, learn, and thrive.">
     <title>Kuza G2G Tribe | From Vision To Absolute Victory</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%231a053a' stroke='%23ffcc00' stroke-width='4'/%3E%3Cpolygon points='50,14 82,32 82,68 50,86 18,68 18,32' fill='none' stroke='%23ff9800' stroke-width='3'/%3E%3Cpath d='M36 32 L36 68 M36 50 L58 32 M44 44 L62 68' stroke='%23ffcc00' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='66' cy='34' r='4.5' fill='%23e1306c'/%3E%3C/svg%3E">
+    <!-- Custom Browser Tab Logo (Favicon) - Point to your own image file (e.g. img/logo.jpg) or update dynamically via Admin Portal -->
+    <link id="tabFavicon" rel="icon" href="img/logo.jpg">
+    <link id="appleTabIcon" rel="apple-touch-icon" href="img/logo.jpg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         :root {
@@ -2209,7 +2211,20 @@
                     </div>
 
                     <div class="admin-card">
-                        <h3>Admin Security & Cloud Status</h3>
+                        <h3>Browser Tab Logo, Security & Cloud Status</h3>
+                        <div class="admin-form-group">
+                            <label for="tabLogoUrlInput">Browser Tab Logo URL / Path (Favicon)</label>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                                <img id="tabLogoPreviewImg" src="img/logo.jpg" alt="Tab Logo Preview" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--hex-accent-gold); background: var(--hex-primary-dark); flex-shrink: 0;" onerror="this.onerror=null; this.src=CREST_DATA_URI;">
+                                <input type="text" id="tabLogoUrlInput" class="admin-input" placeholder="img/logo.jpg or https://..." style="flex: 1; min-width: 160px;">
+                                <button type="button" class="btn-admin-primary" onclick="applyTabLogoFromInput()"><i class="fas fa-check"></i> Set Tab Logo</button>
+                            </div>
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="tabLogoFileInput">— OR — Upload Custom Logo Image (Via ImgBB)</label>
+                            <input type="file" id="tabLogoFileInput" class="admin-input" accept="image/*" onchange="handleTabLogoFileUpload(this)">
+                        </div>
+                        <hr style="margin: 18px 0; border: none; border-top: 1px solid #eee;">
                         <div class="admin-form-group">
                             <label>Change Executive Passcode (Synced to Firebase)</label>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -2421,6 +2436,7 @@
 
     const DEFAULT_DATA = {
         adminPasscode: DEFAULT_ADMIN_PASSCODE,
+        tabLogoUrl: 'img/logo.jpg',
         metrics: [
             { num: '500', suffix: '+', title: 'Active Global Members', desc: 'Verified changemakers mapped across structural enterprise pipelines.', icon: 'fa-cubes-stacked', colorClass: 'color-one' },
             { num: '12', suffix: '+', title: 'Corporate Meetups', desc: 'Physical elite networking conferences executed successfully.', icon: 'fa-handshake-angle', colorClass: 'color-two' },
@@ -2618,6 +2634,9 @@
         if (!parsed.adminPasscode) {
             parsed.adminPasscode = localStorage.getItem(PASSCODE_KEY) || DEFAULT_ADMIN_PASSCODE;
         }
+        if (!parsed.tabLogoUrl) {
+            parsed.tabLogoUrl = DEFAULT_DATA.tabLogoUrl;
+        }
         return parsed;
     }
 
@@ -2626,6 +2645,83 @@
     let activeGalleryFilter = 'All';
     let currentFilteredPhotos = [];
     let currentLightboxIndex = 0;
+
+    /* ============================================================================
+    BROWSER TAB LOGO (FAVICON) HELPER
+    Updates <link id="tabFavicon" rel="icon"> and Apple touch icon immediately.
+    Supports custom image URLs/paths or falls back to the SVG crest if broken.
+    ============================================================================ */
+    function inferFaviconMimeType(url) {
+        const cleanUrl = (url || '').split('?')[0].toLowerCase();
+        if (cleanUrl.startsWith('data:image/svg+xml') || cleanUrl.endsWith('.svg')) return 'image/svg+xml';
+        if (cleanUrl.endsWith('.png')) return 'image/png';
+        if (cleanUrl.endsWith('.webp')) return 'image/webp';
+        if (cleanUrl.endsWith('.ico')) return 'image/x-icon';
+        if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) return 'image/jpeg';
+        return '';
+    }
+
+    function setBrowserTabLogo(url) {
+        const resolvedUrl = (url && url.trim()) ? url.trim() : DEFAULT_DATA.tabLogoUrl;
+        const faviconLink = document.getElementById('tabFavicon');
+        const appleLink = document.getElementById('appleTabIcon');
+        const previewImg = document.getElementById('tabLogoPreviewImg');
+        const inputField = document.getElementById('tabLogoUrlInput');
+
+        if (faviconLink) {
+            const mime = inferFaviconMimeType(resolvedUrl);
+            if (mime) {
+                faviconLink.setAttribute('type', mime);
+            } else {
+                faviconLink.removeAttribute('type');
+            }
+            // Cache-busting query param forces browsers to refresh the tab icon immediately
+            const cacheBuster = resolvedUrl.startsWith('data:')
+                ? resolvedUrl
+                : `${resolvedUrl}${resolvedUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+            faviconLink.setAttribute('href', cacheBuster);
+        }
+
+        if (appleLink) {
+            appleLink.setAttribute('href', resolvedUrl);
+        }
+
+        if (previewImg) {
+            previewImg.src = resolvedUrl;
+        }
+
+        if (inputField && document.activeElement !== inputField) {
+            inputField.value = resolvedUrl;
+        }
+    }
+
+    async function applyTabLogoFromInput() {
+        const inputField = document.getElementById('tabLogoUrlInput');
+        const chosenUrl = (inputField ? inputField.value : '').trim() || DEFAULT_DATA.tabLogoUrl;
+        siteData.tabLogoUrl = chosenUrl;
+        setBrowserTabLogo(chosenUrl);
+        await saveSiteData(siteData);
+        showToast('Browser tab logo updated!');
+    }
+
+    async function handleTabLogoFileUpload(fileInput) {
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+        try {
+            showToast('Uploading custom tab logo to ImgBB...');
+            const uploadedUrl = await uploadToImgBB(fileInput.files[0]);
+            siteData.tabLogoUrl = uploadedUrl;
+            setBrowserTabLogo(uploadedUrl);
+            await saveSiteData(siteData);
+            fileInput.value = '';
+            showToast('Custom browser tab logo uploaded and saved!');
+        } catch (err) {
+            console.warn('Tab logo upload failed:', err);
+            showToast('Could not upload logo image. Try entering a URL instead.');
+        }
+    }
+
+    // Apply initial tab logo right away on load
+    setBrowserTabLogo(siteData.tabLogoUrl);
 
     function getActivePasscode() {
         return (siteData && siteData.adminPasscode) || localStorage.getItem(PASSCODE_KEY) || DEFAULT_ADMIN_PASSCODE;
@@ -2664,6 +2760,7 @@
                     ...DEFAULT_DATA,
                     ...cloudData,
                     adminPasscode: resolvedPasscode,
+                    tabLogoUrl: cloudData.tabLogoUrl || siteData.tabLogoUrl || DEFAULT_DATA.tabLogoUrl,
                     metrics: cloudData.metrics || DEFAULT_DATA.metrics,
                     leaders: cloudData.leaders || DEFAULT_DATA.leaders,
                     briefings: cloudData.briefings || DEFAULT_DATA.briefings,
@@ -2675,6 +2772,7 @@
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(siteData));
                     localStorage.setItem(PASSCODE_KEY, resolvedPasscode);
                 } catch (_) {}
+                setBrowserTabLogo(siteData.tabLogoUrl);
                 renderAllSections();
                 renderAdminLists();
             } else {
@@ -3146,6 +3244,7 @@
         document.getElementById('mVal1').value = siteData.metrics[0].num;
         document.getElementById('mVal2').value = siteData.metrics[1].num;
         document.getElementById('mVal3').value = siteData.metrics[2].num;
+        setBrowserTabLogo(siteData.tabLogoUrl);
     }
 
     /* ADD / EDIT LEADER WITH IMGBB UPLOAD */
@@ -3342,6 +3441,7 @@
         localStorage.removeItem(STORAGE_KEY);
         localStorage.setItem(PASSCODE_KEY, DEFAULT_ADMIN_PASSCODE);
         siteData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        setBrowserTabLogo(siteData.tabLogoUrl);
         await saveSiteData(siteData);
         showToast('Site restored to original defaults (passcode: kuza@2026).');
     }
